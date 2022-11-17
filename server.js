@@ -46,19 +46,95 @@ app.route("/").get((req, res) => {
   }
 });
 
-app.route("/connect").post(function (req, res) {
-  const apikey = req.headers.apikey;
-  if (apikey !== server_key) {
-    res.status(401).send({ code: "API KEY is invalid" });
+const user_ = [];
+const regex = new RegExp("[a-z0-9]+@[a-z]+.[a-z]{2,3}");
+app.route("/register").post(function (req, res) {
+  const identifyUserExistance = user_.find(
+    (identifyUserExistance) =>
+      identifyUserExistance.email === req.body.email &&
+      identifyUserExistance.username === req.body.username
+  );
+  const email = req.body.email;
+  const password = req.body.password;
+  const username = req.body.username;
+  if (identifyUserExistance) {
+    res.status(401).send({ code: "You already have an account with us" });
   } else {
-    ConnectUser(req, res);
+    MoveToStep2();
+  }
+  function MoveToStep2() {
+    if (username === "" || email === "" || password === "") {
+      res.status(401).send({
+        code: "You must fill the fields before moving unto the next step",
+      });
+    } else {
+      ValidateEmailField(req, res, email, password);
+    }
+  }
+});
+function ValidateEmailField(req, res, email, password) {
+  if (regex.test(email) && email.includes(".")) {
+    ValidatePasswordField(req, res, password);
+  } else {
+    res.status(401).send({ code: "email not valid" });
+  }
+}
+function ValidatePasswordField(req, res, password) {
+  if (password.length > 8) {
+    res.status(200).send({ code: "Account created Sucessfully" });
+    user_.push(req.body);
+  } else {
+    res
+      .status(401)
+      .send({ code: "Your password must be at least 10 characters" });
+  }
+}
+
+app.route("/admin").get(function (req, res) {
+  const apikey = req.headers.apikey;
+
+  if (apikey !== server_key) {
+    res.status(401).send({ code: "Unauthorized to view this route" });
+  } else {
+    CheckIfArrayIsEmpty();
+  }
+  function CheckIfArrayIsEmpty() {
+    if (user_ && user_.length) {
+      res.status(200).send(user_);
+    } else {
+      res.status(404).send({ code: "No user was found in the database" });
+    }
+  }
+});
+
+app.route("/login").post((req, res) => {
+  const identifyUserExistance = user_.find(
+    (identifyUserExistance) =>
+      identifyUserExistance.email === req.body.email &&
+      identifyUserExistance.password === req.body.password
+  );
+  if (identifyUserExistance) {
+    res.status(200).send({ code: "Login Sucessfully" });
+  } else {
+    res.status(401).send({ code: "Login Failed, try correcting your input" });
   }
 });
 
 app.route("/create").post((req, res) => {
-  GenerateToken(req, res);
+  const identifyUserExistance = user_.find(
+    (identifyUserExistance) =>
+      identifyUserExistance.email === req.body.email &&
+      identifyUserExistance.password === req.body.password
+  );
+  if (identifyUserExistance) {
+    GenerateToken(req, res);
+  } else {
+    res
+      .status(401)
+      .send({ code: "You must have an account to continue this process" });
+  }
 });
-const token_database = [{token: 123}];
+const token_database = [{ token: null }];
 function GenerateToken(req, res) {
   const server_token = generate.random();
   if (typeof localStorage === "undefined" || localStorage === null) {
@@ -69,11 +145,33 @@ function GenerateToken(req, res) {
   if (server_token) {
     res.send({ code: "Token generated ", server_token });
     token_database[0].token = server_token;
-    console.log(token_database)
   } else {
     console.log("bad");
   }
 }
+
+app.route("/connect").post(function (req, res) {
+  const apikey = req.headers.apikey;
+  const identifyUserExistance = user_.find(
+    (identifyUserExistance) =>
+      identifyUserExistance.email === req.body.email &&
+      identifyUserExistance.password === req.body.password
+  );
+  if (apikey !== server_key) {
+    res.status(401).send({ code: "API KEY is invalid" });
+  } else {
+    CheckIfUserIsAuthorized();
+  }
+  function CheckIfUserIsAuthorized() {
+    if (identifyUserExistance) {
+      ConnectUser(req, res);
+    } else {
+      res
+        .status(401)
+        .send({ code: "You must have an account to continue this process" });
+    }
+  }
+});
 
 const ConnectUser = (req, res) => {
   if (typeof localStorage === "undefined" || localStorage === null) {
@@ -87,11 +185,6 @@ const ConnectUser = (req, res) => {
   if (session_token !== server_token) {
     res.status(401).send({ code: "Invalid token" });
   } else {
-    res.status(200).send({
-      code: `${
-        "Connected Successfully!" + " " + user + " " + "has joined the chat"
-      }`,
-    });
     ChatSystem(req, res, user, session_token, server_token);
   }
 };
@@ -101,17 +194,50 @@ const ChatSystem = (req, res, user, session_token, server_token) => {
   const checkTokenExistance = token_database.find(
     (checkTokenExistance) => checkTokenExistance.token === session_token
   );
-  console.log(session_token);
-  console.log(checkTokenExistance);
-  if(checkTokenExistance) {
-    console.log('ok')
-    user = checkTokenExistance.username;
-    chat_box.push(req.body);
-    console.log(req.body);
+  const identifyUserExistance = user_.find(
+    (identifyUserExistance) =>
+      identifyUserExistance.username === req.body.session.username
+  );
+  if (checkTokenExistance) {
+    CheckIfUserIsAuth();
   } else {
-    console.log('err')
+    res.status(403).send({
+      code: `${"Token is not authorized, or has expired"}`,
+    });
+  }
+
+  function CheckIfUserIsAuth() {
+    if (identifyUserExistance) {
+      res.status(200).send({
+        code: `${
+          "Connected Successfully!" + " " + user + " " + "has joined the chat"
+        }`,
+      });
+      console.log("ok");
+      user = identifyUserExistance.username;
+      chat_box.push(req.body);
+    } else {
+      res.status(401).send({code: 'Your username is either incorrect or not authenticated'});
+    }
   }
 };
+
+app.route("/chatio").get((req, res) => {
+  const apikey = req.headers.apikey;
+  if (apikey !== server_key) {
+    res.status(401).send({ code: "API KEY is invalid" });
+  } else {
+    ViewChatMessage(req, res);
+  }
+});
+
+function ViewChatMessage(req, res) {
+  if (chat_box && chat_box.length) {
+    res.status(200).send(chat_box);
+  } else {
+    res.status(404).send({ code: "No chat was found in your chat database" });
+  }
+}
 
 app.listen(PORT, () => {
   try {
