@@ -124,6 +124,6 @@ If you find any bugs or issues wrong with is app, kindly submit an issue. - usin
 
 Copyright &copy; 2022-2023 hashtag
 
-Licensed under the [Apache License, Version 2.0]()
+Licensed under the [Apache License, Version 2.0](LICENSE)
 
 </div>
