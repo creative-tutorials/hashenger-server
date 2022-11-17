@@ -1,6 +1,8 @@
 <div align="center">
 
 <!-- Logo goes here -->
+
+<img src="https://user-images.githubusercontent.com/68476321/202520875-199c6cb6-a996-475b-9489-7e1ee3360994.png" alt="Hashenger logo" width="300px" />
 </div>
 
 <div align="center">
