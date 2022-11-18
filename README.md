@@ -90,7 +90,7 @@ Well chat-id's are unique and are more secured than having using your google acc
 
 ## Contributing
 
-If you would like to contribute something to this project, please read the [Contribution Guidelines]() first.
+If you would like to contribute something to this project, please read the [Contribution Guidelines](https://github.com/creative-tutorials/hashenger/blob/master/CONTRIBUTING.md) first.
 
 ## Changes you might want to make
 
