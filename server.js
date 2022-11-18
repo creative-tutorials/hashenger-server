@@ -52,7 +52,7 @@ app.route("/register").post(function (req, res) {
   const identifyUserExistance = user_.find(
     (identifyUserExistance) =>
       identifyUserExistance.email === req.body.email &&
-      identifyUserExistance.username === req.body.username
+      identifyUserExistance.password === req.body.password
   );
   const email = req.body.email;
   const password = req.body.password;
@@ -81,6 +81,7 @@ function ValidateEmailField(req, res, email, password) {
 }
 function ValidatePasswordField(req, res, password) {
   if (password.length > 8) {
+    req.body.token = null;
     res.status(200).send({ code: "Account created Sucessfully" });
     user_.push(req.body);
   } else {
@@ -108,15 +109,31 @@ app.route("/admin").get(function (req, res) {
 });
 
 app.route("/login").post((req, res) => {
+  const email_input = req.body.email;
+  const password_input = req.body.password;
   const identifyUserExistance = user_.find(
     (identifyUserExistance) =>
       identifyUserExistance.email === req.body.email &&
       identifyUserExistance.password === req.body.password
   );
-  if (identifyUserExistance) {
-    res.status(200).send({ code: "Login Sucessfully" });
+  if (email_input === "" || password_input === "") {
+    res.status(401).send({ code: "Field cannot be empty" });
   } else {
-    res.status(401).send({ code: "Login Failed, try correcting your input" });
+    CheckEmailFieldForValidInput();
+  }
+  function CheckEmailFieldForValidInput() {
+    if (regex.test(email_input) && email_input.includes(".")) {
+      CheckIfUserIsAuth();
+    } else {
+      res.status(401).send({ code: "email not valid" });
+    }
+  }
+  function CheckIfUserIsAuth() {
+    if (identifyUserExistance) {
+      res.status(200).send({ code: "Login Sucessfully" });
+    } else {
+      res.status(401).send({ code: "That account does'nt exist" });
+    }
   }
 });
 
@@ -127,7 +144,7 @@ app.route("/create").post((req, res) => {
       identifyUserExistance.password === req.body.password
   );
   if (identifyUserExistance) {
-    GenerateToken(req, res);
+    GenerateToken(req, res, identifyUserExistance);
   } else {
     res
       .status(401)
@@ -135,7 +152,7 @@ app.route("/create").post((req, res) => {
   }
 });
 const token_database = [{ token: null }];
-function GenerateToken(req, res) {
+function GenerateToken(req, res, identifyUserExistance) {
   const server_token = generate.random();
   if (typeof localStorage === "undefined" || localStorage === null) {
     global.localStorage = new LocalStorage("./scratch");
@@ -144,6 +161,7 @@ function GenerateToken(req, res) {
   localStorage.setItem("token", server_token);
   if (server_token) {
     res.send({ code: "Token generated ", server_token });
+    identifyUserExistance.token = server_token;
     token_database[0].token = server_token;
   } else {
     console.log("bad");
@@ -164,7 +182,7 @@ app.route("/connect").post(function (req, res) {
   }
   function CheckIfUserIsAuthorized() {
     if (identifyUserExistance) {
-      ConnectUser(req, res);
+      ConnectUser(req, res, identifyUserExistance);
     } else {
       res
         .status(401)
@@ -173,12 +191,12 @@ app.route("/connect").post(function (req, res) {
   }
 });
 
-const ConnectUser = (req, res) => {
+const ConnectUser = (req, res, identifyUserExistance) => {
   if (typeof localStorage === "undefined" || localStorage === null) {
     global.localStorage = new LocalStorage("./scratch");
   }
 
-  const server_token = localStorage.getItem("token");
+  const server_token = identifyUserExistance.token;
   const session = req.body.session;
   const session_token = req.body.session.token;
   const user = req.body.session.username;
@@ -191,34 +209,40 @@ const ConnectUser = (req, res) => {
 const chat_box = [];
 const ChatSystem = (req, res, user, session_token, server_token) => {
   const message = req.body.chat;
-  const checkTokenExistance = token_database.find(
-    (checkTokenExistance) => checkTokenExistance.token === session_token
+  const identifyUserName = user_.find(
+    (identifyUserName) =>
+    identifyUserName.username === req.body.session.username
   );
   const identifyUserExistance = user_.find(
     (identifyUserExistance) =>
-      identifyUserExistance.username === req.body.session.username
+      identifyUserExistance.token === req.body.session.token
   );
-  if (checkTokenExistance) {
-    CheckIfUserIsAuth();
+  if (identifyUserExistance) {
+    CheckIfUserNameIsADuplicate();
   } else {
     res.status(403).send({
       code: `${"Token is not authorized, or has expired"}`,
     });
   }
-
-  function CheckIfUserIsAuth() {
-    if (identifyUserExistance) {
-      res.status(200).send({
-        code: `${
-          "Connected Successfully!" + " " + user + " " + "has joined the chat"
-        }`,
-      });
-      console.log("ok");
-      user = identifyUserExistance.username;
-      chat_box.push(req.body);
+  function CheckIfUserNameIsADuplicate() {
+    if(identifyUserName) {
+      MoveToNextStep();
     } else {
-      res.status(401).send({code: 'Your username is either incorrect or not authenticated'});
+      res.status(403).send({
+        code: `${"Username is not registered to an account"}`,
+      });
     }
+  }
+
+  function MoveToNextStep() {
+    res.status(200).send({
+      code: `${
+        "Connected Successfully!" + " " + user + " " + "has joined the chat"
+      }`,
+    });
+    console.log("ok");
+    user = identifyUserExistance.username;
+    chat_box.push(req.body);
   }
 };
 
