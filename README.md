@@ -82,7 +82,7 @@ Hashenger takes security even further by using a chat-id that you've created. Wi
 
 ## Why choose chat-ID
 
-Well chat-id's are unique and are more secured than having using your google account, plus with our chat-id we give you control of anything that happen, meaning you can kick someone out from your chat, limit what they can say or do, or even have many people join your chatbase.
+Well chat-id's and token are unique and are more secured than having to rely on  your google account and other email providers for security, plus with our new feature of chat-id we give you control of anything that happen in the chat, meaning you can kick someone out from your chat, limit what they can say or do, or even have many people join your chatbase.
 
 </div>
 
