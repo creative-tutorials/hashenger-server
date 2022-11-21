@@ -1,5 +1,5 @@
 "use-strict";
-// const generate = require('meaningful-string');
+import { getCurrentDateFunc } from "./date.mjs";
 import generate from "meaningful-string";
 import { LocalStorage } from "node-localstorage";
 import * as dotenv from "dotenv";
@@ -35,17 +35,16 @@ app.use(
     },
   })
 );
-
+const dateSystem = {date: null}
+getCurrentDateFunc(dateSystem);
 app.route("/").get((req, res) => {
   const apikey = req.headers.apikey;
-
   if (apikey !== server_key) {
     res.status(401).send({ code: "API KEY is invalid" });
   } else {
     res.status(200).send({ code: "Welcome" });
   }
 });
-
 const user_ = [];
 const regex = new RegExp("[a-z0-9]+@[a-z]+.[a-z]{2,3}");
 app.route("/register").post(function (req, res) {
@@ -72,6 +71,7 @@ app.route("/register").post(function (req, res) {
     }
   }
 });
+
 function ValidateEmailField(req, res, email, password) {
   if (regex.test(email) && email.includes(".")) {
     ValidatePasswordField(req, res, password);
@@ -81,7 +81,6 @@ function ValidateEmailField(req, res, email, password) {
 }
 function ValidatePasswordField(req, res, password) {
   if (password.length > 8) {
-    req.body.token = null;
     res.status(200).send({ code: "Account created Sucessfully" });
     user_.push(req.body);
   } else {
@@ -93,7 +92,6 @@ function ValidatePasswordField(req, res, password) {
 
 app.route("/admin").get(function (req, res) {
   const apikey = req.headers.apikey;
-
   if (apikey !== server_key) {
     res.status(401).send({ code: "Unauthorized to view this route" });
   } else {
@@ -144,31 +142,37 @@ app.route("/create").post((req, res) => {
       identifyUserExistance.password === req.body.password
   );
   if (identifyUserExistance) {
-    GenerateToken(req, res, identifyUserExistance);
+    GenerateID(req, res);
   } else {
     res
       .status(401)
       .send({ code: "You must have an account to continue this process" });
   }
 });
-const token_database = [{ token: null }];
-function GenerateToken(req, res, identifyUserExistance) {
-  const server_token = generate.random();
-  if (typeof localStorage === "undefined" || localStorage === null) {
-    global.localStorage = new LocalStorage("./scratch");
-  }
-
-  localStorage.setItem("token", server_token);
-  if (server_token) {
-    res.send({ code: "Token generated ", server_token });
-    identifyUserExistance.token = server_token;
-    token_database[0].token = server_token;
+const chat = [];
+function GenerateID(req, res) {
+  let { chatid, chatname } = req.body;
+  if (chatname === "" || !chatname) {
+    res.status(401).send({ code: "You must provide a name for your chat" });
   } else {
-    console.log("bad");
+    const options = {
+      min: 8,
+      max: 10,
+      capsWithNumbers: true,
+    };
+    const generatedID = generate.random(options);
+    chatid = generatedID;
+    console.log(chatid, chatname);
+    chat.push({
+      chatid: chatid,
+      chatname: chatname,
+      body: [],
+    });
+    res.send({ code: "Your chat id", generatedID });
   }
 }
 
-app.route("/connect").post(function (req, res) {
+app.route("/connect/:id").post(function (req, res) {
   const apikey = req.headers.apikey;
   const identifyUserExistance = user_.find(
     (identifyUserExistance) =>
@@ -182,7 +186,7 @@ app.route("/connect").post(function (req, res) {
   }
   function CheckIfUserIsAuthorized() {
     if (identifyUserExistance) {
-      ConnectUser(req, res, identifyUserExistance);
+      ConnectUser(req, res);
     } else {
       res
         .status(401)
@@ -191,75 +195,54 @@ app.route("/connect").post(function (req, res) {
   }
 });
 
-const ConnectUser = (req, res, identifyUserExistance) => {
-  if (typeof localStorage === "undefined" || localStorage === null) {
-    global.localStorage = new LocalStorage("./scratch");
-  }
-
-  const server_token = identifyUserExistance.token;
-  const session = req.body.session;
-  const session_token = req.body.session.token;
-  const user = req.body.session.username;
-  if (session_token !== server_token) {
-    res.status(401).send({ code: "Invalid token" });
+const ConnectUser = (req, res) => {
+  const inputID = req.params;
+  console.log(inputID);
+  const result = chat.find((result) => result.chatid === req.params.id);
+  if (!result) {
+    res.status(404).send({ code: "The ID of the chat does not exist" });
   } else {
-    ChatSystem(req, res, user, session_token, server_token);
-  }
-};
-const chat_box = [];
-const ChatSystem = (req, res, user, session_token, server_token) => {
-  const message = req.body.chat;
-  const identifyUserName = user_.find(
-    (identifyUserName) =>
-    identifyUserName.username === req.body.session.username
-  );
-  const identifyUserExistance = user_.find(
-    (identifyUserExistance) =>
-      identifyUserExistance.token === req.body.session.token
-  );
-  if (identifyUserExistance) {
-    CheckIfUserNameIsADuplicate();
-  } else {
-    res.status(403).send({
-      code: `${"Token is not authorized, or has expired"}`,
-    });
-  }
-  function CheckIfUserNameIsADuplicate() {
-    if(identifyUserName) {
-      MoveToNextStep();
-    } else {
-      res.status(403).send({
-        code: `${"Username is not registered to an account"}`,
-      });
-    }
-  }
-
-  function MoveToNextStep() {
-    res.status(200).send({
-      code: `${
-        "Connected Successfully!" + " " + user + " " + "has joined the chat"
-      }`,
-    });
-    console.log("ok");
-    user = identifyUserExistance.username;
-    chat_box.push(req.body);
+    const meetindId = chat;
+    res.status(200).send(meetindId);
+    console.log(meetindId);
   }
 };
 
-app.route("/chatio").get((req, res) => {
+app.route("/chatio/:id").post((req, res) => {
   const apikey = req.headers.apikey;
   if (apikey !== server_key) {
     res.status(401).send({ code: "API KEY is invalid" });
   } else {
-    ViewChatMessage(req, res);
+    CheckUserIsAuth(req, res);
   }
 });
-
-function ViewChatMessage(req, res) {
-  if (chat_box && chat_box.length) {
-    res.status(200).send(chat_box);
+function CheckUserIsAuth(req, res) {
+  const identifyUserExistance = user_.find(
+    (identifyUserExistance) =>
+      identifyUserExistance.email === req.body.email &&
+      identifyUserExistance.password === req.body.password
+  );
+  if (identifyUserExistance) {
+    SendMessage(req, res, identifyUserExistance);
   } else {
-    res.status(404).send({ code: "No chat was found in your chat database" });
+    res
+      .status(401)
+      .send({ code: "You must have an account to continue this process" });
+  }
+}
+function SendMessage(req, res, identifyUserExistance) {
+  const user = req.body.username;
+  const inputID = req.params;
+  const result = chat.find((result) => result.chatid === req.params.id);
+  if (!result) {
+    res.status(404).send({ code: "The ID of the chat does not exist" });
+  } else {
+    const meetindId = result.body;
+    req.body.body.username = identifyUserExistance.username;
+    req.body.body.timestamp = dateSystem.date;
+    meetindId.push(req.body.body);
+    res.status(200).send({ code: "Message delivered" });
+    console.log(meetindId);
   }
 }
 
