@@ -203,8 +203,8 @@ const ConnectUser = (req, res) => {
     res.status(404).send({ code: "The ID of the chat does not exist" });
   } else {
     const meetindId = chat;
-    res.status(200).send(meetindId);
-    console.log(meetindId);
+    res.status(200).send(result);
+    console.log(result);
   }
 };
 
@@ -238,9 +238,9 @@ function SendMessage(req, res, identifyUserExistance) {
     res.status(404).send({ code: "The ID of the chat does not exist" });
   } else {
     const meetindId = result.body;
-    req.body.body.username = identifyUserExistance.username;
-    req.body.body.timestamp = dateSystem.date;
-    meetindId.push(req.body.body);
+    req.body.chatbody.username = identifyUserExistance.username;
+    req.body.chatbody.timestamp = dateSystem.date;
+    meetindId.push(req.body.chatbody);
     res.status(200).send({ code: "Message delivered" });
     console.log(meetindId);
   }
