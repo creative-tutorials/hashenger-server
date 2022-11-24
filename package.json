@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "description": "backend server to hashtag messenger",
-  "main": "server.js",
+  "main": "index.js",
   "repository": "https://github.com/creative-tutorials/hashenger-backend",
   "author": "creative-tutorials",
   "license": "Apache-2.0 license",
   "scripts": {
     "test": "yarn test",
-    "start": "node server.js",
-    "serve": "nodemon server.js"
+    "start": "node index.js",
+    "serve": "nodemon index.js"
   },
   "private": true,
   "dependencies": {
