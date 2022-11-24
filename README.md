@@ -2,7 +2,7 @@
 
 <!-- Logo goes here -->
 
-<img src="https://user-images.githubusercontent.com/68476321/202520875-199c6cb6-a996-475b-9489-7e1ee3360994.png" alt="Hashenger logo" width="300px" />
+<img src="https://user-images.githubusercontent.com/68476321/203781443-8f43e99e-0471-4092-a4b8-449bf3371943.png" alt="logo" width="200px" />
 </div>
 
 <div align="center">
