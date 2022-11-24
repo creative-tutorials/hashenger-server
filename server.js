@@ -1,13 +1,12 @@
 "use-strict";
+import cors from "cors";
 import { getCurrentDateFunc } from "./date.mjs";
 import generate from "meaningful-string";
-import { LocalStorage } from "node-localstorage";
 import * as dotenv from "dotenv";
 import colors from "colors";
 import express, { json, urlencoded } from "express";
 const app = express();
 
-import cors from "cors";
 import path from "path";
 dotenv.config();
 app.use(json({ limit: "1000mb" }));
